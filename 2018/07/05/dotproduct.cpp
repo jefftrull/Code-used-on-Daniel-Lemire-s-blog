@@ -1,5 +1,9 @@
 #include <numeric>
 
+#include <hpx/hpx_init.hpp>
+#include <hpx/hpx.hpp>
+#include <hpx/include/parallel_numeric.hpp>
+
 #include <assert.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -174,6 +178,9 @@ __attribute__((noinline)) float dot_inner_product(float *x1, float *x2, size_t l
     return std::inner_product(x1, x1+len, x2, 0.);
 }
 
+__attribute__((noinline)) float dot_transform_reduce(float *x1, float *x2, size_t len) {
+    return hpx::parallel::transform_reduce(hpx::parallel::execution::par_unseq, x1, x1+len, x2, 0.);
+}
 
 void demo(size_t number) {
   number = number / 16 * 16;
@@ -221,12 +228,16 @@ void demo(size_t number) {
   expected = dot_inner_product(x1, x2, number);
   BEST_TIME(dot_inner_product(x1, x2, number), expected, , repeat, number, bytes, true);
 
+  // and HPX parallel algorithm
+  expected = dot_transform_reduce(x1, x2, number);
+  BEST_TIME(dot_transform_reduce(x1, x2, number), expected, , repeat, number, bytes, true);
+
   printf("\n");
   free(x1);
   free(x2);
 }
 
-int main() {
+int hpx_main() {
   demo(1024);
   demo(2097152);
   demo(4194304);
@@ -234,5 +245,18 @@ int main() {
   demo(16777216);
   demo(33554432);
   demo(134217728);
-  return EXIT_SUCCESS;
+
+  return hpx::finalize();
+
+}
+
+int main(int argc, char* argv[])
+{
+    // By default this should run on all available cores
+    std::vector<std::string> const cfg = {
+        "hpx.os_threads=all"
+    };
+
+    // Initialize and run HPX
+    return hpx::init(argc, argv, cfg);
 }
