@@ -1,3 +1,5 @@
+#include <numeric>
+
 #include <assert.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -168,6 +170,10 @@ __attribute__((noinline)) float dot512fma2(float *x1, float *x2, size_t len) {
 
 #endif
 
+__attribute__((noinline)) float dot_inner_product(float *x1, float *x2, size_t len) {
+    return std::inner_product(x1, x1+len, x2, 0.);
+}
+
 
 void demo(size_t number) {
   number = number / 16 * 16;
@@ -210,6 +216,11 @@ void demo(size_t number) {
   expected = dot512fma2(x1, x2, number);
   BEST_TIME(dot512fma2(x1, x2, number), expected, , repeat, number, bytes, true);
 #endif
+
+  // try std algorithm
+  expected = dot_inner_product(x1, x2, number);
+  BEST_TIME(dot_inner_product(x1, x2, number), expected, , repeat, number, bytes, true);
+
   printf("\n");
   free(x1);
   free(x2);
